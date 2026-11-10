@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perfume Dilution Calculator</title>
+<meta name="description" content="Volume-ratio calculator for perfume dilution: fragrance oil, alcohol and concentrate amounts.">
+<style>
+  :root {
+    --bg: #141110;
+    --panel: #1e1a18;
+    --line: #342c27;
+    --text: #ece5dc;
+    --muted: #a99c8f;
+    --gold: #c9a35f;
+    --gold-soft: #8f7440;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    padding: 24px 16px 48px;
+  }
+  main { max-width: 560px; margin: 0 auto; }
+  h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 400;
+    font-size: 30px;
+    letter-spacing: 0.4px;
+    margin-bottom: 6px;
+  }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 18px;
+  }
+  .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+  .tab {
+    flex: 1;
+    padding: 10px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--muted);
+    font-size: 14px;
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .tab.active { border-color: var(--gold); color: var(--gold); }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+  label:first-of-type { margin-top: 0; }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+  input[type="number"] {
+    width: 100%;
+    padding: 11px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: #171312;
+    color: var(--text);
+    font-size: 16px;
+  }
+  input[type="number"]:focus { outline: none; border-color: var(--gold); }
+  .unit { position: relative; }
+  .unit span {
+    position: absolute; right: 12px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted); font-size: 13px; pointer-events: none;
+  }
+  .unit input { padding-right: 48px; }
+  .results { display: none; }
+  .results.show { display: block; }
+  .results h2 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 400;
+    font-size: 19px;
+    margin-bottom: 12px;
+    color: var(--gold);
+  }
+  .line-item {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 15px;
+  }
+  .line-item:last-child { border-bottom: none; }
+  .line-item .val { font-variant-numeric: tabular-nums; color: var(--text); }
+  .line-item .note { font-size: 12px; color: var(--muted); margin-left: 6px; }
+  .scope {
+    margin-top: 14px;
+    font-size: 12.5px;
+    color: var(--muted);
+    border-left: 2px solid var(--gold-soft);
+    padding-left: 10px;
+  }
+  footer {
+    margin-top: 26px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+  .error { color: #d98a7a; font-size: 13px; margin-top: 10px; display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Perfume Dilution Calculator</h1>
+  <p class="sub">Simple volume-ratio math for diluting fragrance oils and concentrates.</p>
+
+  <div class="tabs" role="tablist">
+    <button class="tab active" id="tab-blend" role="tab" aria-selected="true">Blend from oil</button>
+    <button class="tab" id="tab-dilute" role="tab" aria-selected="false">Dilute a concentrate</button>
+  </div>
+
+  <section class="card" id="panel-blend">
+    <label for="blend-size">Final volume</label>
+    <div class="unit"><input type="number" id="blend-size" min="1" step="any" value="50" inputmode="decimal"><span>ml</span></div>
+
+    <label for="blend-strength">Oil concentration (% by volume)</label>
+    <div class="unit"><input type="number" id="blend-strength" min="0.1" max="100" step="any" value="20" inputmode="decimal"><span>% v/v</span></div>
+  </section>
+
+  <section class="card" id="panel-dilute" hidden>
+    <label for="dil-size">Final volume</label>
+    <div class="unit"><input type="number" id="dil-size" min="1" step="any" value="30" inputmode="decimal"><span>ml</span></div>
+
+    <div class="row">
+      <div>
+        <label for="dil-from">Concentrate strength</label>
+        <div class="unit"><input type="number" id="dil-from" min="0.1" max="100" step="any" value="40" inputmode="decimal"><span>% v/v</span></div>
+      </div>
+      <div>
+        <label for="dil-to">Target strength</label>
+        <div class="unit"><input type="number" id="dil-to" min="0.1" max="100" step="any" value="20" inputmode="decimal"><span>% v/v</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card results" id="results" aria-live="polite">
+    <h2>Your formula</h2>
+    <div id="result-lines"></div>
+    <p class="scope">Volume ratios only (% v/v), assuming volumes add exactly; real mixtures can contract slightly. This is not safety, skin-use or IFRA guidance.</p>
+    <p class="error" id="error"></p>
+  </section>
+
+  <footer>
+    Draft project, shared privately for review.
+  </footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var tabs = {
+    blend: { tab: document.getElementById("tab-blend"), panel: document.getElementById("panel-blend") },
+    dilute: { tab: document.getElementById("tab-dilute"), panel: document.getElementById("panel-dilute") }
+  };
+  var mode = "blend";
+
+  function setMode(next) {
+    mode = next;
+    Object.keys(tabs).forEach(function (key) {
+      var active = key === next;
+      tabs[key].tab.classList.toggle("active", active);
+      tabs[key].tab.setAttribute("aria-selected", active ? "true" : "false");
+      tabs[key].panel.hidden = !active;
+    });
+    calculate();
+  }
+
+  tabs.blend.tab.addEventListener("click", function () { setMode("blend"); });
+  tabs.dilute.tab.addEventListener("click", function () { setMode("dilute"); });
+
+  function fmt(ml) {
+    if (!isFinite(ml)) return "-";
+    return (Math.round(ml * 10) / 10).toFixed(1) + " ml";
+  }
+
+  function line(name, ml, note) {
+    return '<div class="line-item"><span>' + name +
+      (note ? ' <span class="note">' + note + "</span>" : "") +
+      '</span><span class="val">' + fmt(ml) + "</span></div>";
+  }
+
+  function showError(msg) {
+    var el = document.getElementById("error");
+    el.textContent = msg || "";
+    el.style.display = msg ? "block" : "none";
+  }
+
+  function positive(value) {
+    var n = parseFloat(value);
+    return isFinite(n) && n > 0 ? n : null;
+  }
+
+  function calculate() {
+    var lines = "";
+    showError("");
+
+    if (mode === "blend") {
+      var size = positive(document.getElementById("blend-size").value);
+      var pct = positive(document.getElementById("blend-strength").value);
+      if (!size || !pct) return hide();
+      if (pct > 100) { showError("Concentration can't be over 100%."); return hide(); }
+      var oil = size * pct / 100;
+      var alcohol = size - oil;
+      lines += line("Fragrance oil", oil);
+      lines += line("Perfumer's alcohol", alcohol);
+      lines += line("Total", size, pct + "% v/v");
+    } else {
+      var want = positive(document.getElementById("dil-size").value);
+      var from = positive(document.getElementById("dil-from").value);
+      var to = positive(document.getElementById("dil-to").value);
+      if (!want || !from || !to) return hide();
+      if (to >= from) { showError("Target strength must be below the concentrate strength."); return hide(); }
+      if (from > 100 || to > 100) { showError("Strengths can't be over 100%."); return hide(); }
+      var conc = want * to / from;
+      var alc = want - conc;
+      lines += line("Concentrate (" + from + "% v/v)", conc);
+      lines += line("Perfumer's alcohol", alc);
+      lines += line("Total", want, to + "% v/v");
+    }
+
+    document.getElementById("result-lines").innerHTML = lines;
+    document.getElementById("results").classList.add("show");
+  }
+
+  function hide() {
+    document.getElementById("results").classList.remove("show");
+  }
+
+  document.querySelectorAll("input").forEach(function (input) {
+    input.addEventListener("input", calculate);
+  });
+
+  calculate();
+})();
+</script>
+</body>
+</html>
